@@ -88,10 +88,25 @@ PGPASSWORD='<LLM_READER_PASSWORD>' docker exec -i financial-postgres \
 # ERROR: permission denied for table financial_data
 ```
 
-The role also carries a 5-second `statement_timeout`, and results are capped at
-200 rows by wrapping the query — a three-way self join on this table is
-7,077,888 rows, so the limit has to be applied by the database rather than by
-trimming an array afterwards.
+Results are capped at 200 rows by wrapping the query — a three-way self join on
+this table is 7,077,888 rows, so the limit has to be applied by the database
+rather than by trimming an array afterwards.
+
+Each query also runs in a transaction that begins with
+`SET LOCAL statement_timeout = 5000`. That looks like a roundabout way to set a
+timeout, and the two obvious alternatives were both measured and rejected:
+
+| Approach | Local Docker | Hosted Postgres (Neon) |
+|---|---|---|
+| Client option (`statement_timeout` on the connection) | works | **ignored** |
+| `ALTER ROLE llm_reader SET statement_timeout` | works | works direct, **discarded by the pooler** |
+| `SET LOCAL` inside the transaction | works | works |
+
+The first two fail *silently* — the connection still looks correctly
+configured and the query simply runs uncapped. `SET LOCAL` is scoped to the
+transaction, so no pooler can reset it between the setting and the statement it
+protects. The role-level default is applied too, as a second line for direct
+connections.
 
 ---
 
@@ -121,13 +136,22 @@ Free tier throughout: **Neon** (database), **Render** (backend), **Vercel**
 
 ### 1. Database — Neon
 
-Create a project at <https://neon.tech> and take the connection string.
+Create a project at <https://neon.tech>. Neon gives you two hostnames for the
+same database, and the difference matters:
+
+| Endpoint | Host | Use for |
+|---|---|---|
+| **Direct** | `ep-xxx.region.aws.neon.tech` | the data load, `neon-setup.sql`, migrations |
+| **Pooled** | `ep-xxx-pooler.region.aws.neon.tech` | the running app (`DATABASE_HOST` on Render) |
+
+Migrations and DDL want a real session; PgBouncer transaction pooling is a poor
+fit for them.
 
 ```bash
-export NEON_URL='postgresql://user:pass@host/db?sslmode=require'
+export NEON_DIRECT='postgresql://user:pass@ep-xxx.region.aws.neon.tech/db?sslmode=require'
 
-psql "$NEON_URL" -f data/financial_data.sql
-psql "$NEON_URL" -v llm_password="'a-strong-password'" -f deploy/neon-setup.sql
+psql "$NEON_DIRECT" -f data/financial_data.sql
+psql "$NEON_DIRECT" -v llm_password="'a-strong-password'" -f deploy/neon-setup.sql
 ```
 
 `deploy/neon-setup.sql` adds the indexes and creates `llm_reader` — the work
