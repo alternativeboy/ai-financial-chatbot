@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { SqlValidatorService } from '../llm/services/sql-validator.service';
-import { LLM_READER_CONNECTION, MAX_RESULT_ROWS } from './financial.constants';
+import {
+  LLM_READER_CONNECTION,
+  MAX_RESULT_ROWS,
+  STATEMENT_TIMEOUT_MS,
+} from './financial.constants';
 
 export interface SqlExecutionResult {
   rows: Record<string, unknown>[];
@@ -42,7 +46,26 @@ export class FinancialService {
     const inner = sql.trim().replace(/;\s*$/, '');
     const capped = `SELECT * FROM (${inner}) AS llm_query LIMIT ${MAX_RESULT_ROWS + 1}`;
 
-    const rows: Record<string, unknown>[] = await this.dataSource.query(capped);
+    // The timeout is set inside the transaction rather than relying on the
+    // connection-level option alone.
+    //
+    // Both weaker approaches were measured against a managed Postgres and fail
+    // there: the client-side `statement_timeout` startup parameter is ignored
+    // outright, and a role-level `ALTER ROLE ... SET statement_timeout` is
+    // honoured on a direct connection but discarded by the PgBouncer pooler
+    // that a hosted deployment actually connects through. Either way the cap
+    // disappears silently — the query just runs to completion.
+    //
+    // SET LOCAL is scoped to this transaction, so no pooler can reset it
+    // between the setting and the statement it protects.
+    const rows: Record<string, unknown>[] = await this.dataSource.transaction(
+      async (manager) => {
+        await manager.query(
+          `SET LOCAL statement_timeout = ${STATEMENT_TIMEOUT_MS}`,
+        );
+        return manager.query(capped);
+      },
+    );
     const truncated = rows.length > MAX_RESULT_ROWS;
     const page = truncated ? rows.slice(0, MAX_RESULT_ROWS) : rows;
 

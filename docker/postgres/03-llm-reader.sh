@@ -40,6 +40,10 @@ GRANT SELECT  ON financial_data      TO :"llm_user";
 -- stating them explicitly means the guarantee does not depend on that default.
 -- The second line matters most: conversations and messages are created later by
 -- TypeORM migrations, and must be unreadable to this role the moment they exist.
+-- Pins the timeout to the role for direct connections. FinancialService also
+-- sets it per transaction, because a pooler discards role-level settings.
+ALTER ROLE :"llm_user" SET statement_timeout = '5s';
+
 REVOKE CREATE ON SCHEMA public FROM :"llm_user";
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM :"llm_user";
 EOSQL

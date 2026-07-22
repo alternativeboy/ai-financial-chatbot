@@ -83,19 +83,19 @@ describe('SQL guardrails (e2e)', () => {
       ).rejects.toThrow(/permission denied/i);
     });
 
-    it('carries a 5 second statement timeout', async () => {
-      const [{ statement_timeout: timeout }] = await llmReader.query(
-        'SHOW statement_timeout',
-      );
-      expect(timeout).toBe('5s');
-    });
-
-    it('cancels a long-running query rather than hanging', async () => {
-      // pg_sleep(10) against a 5s timeout. Layer 2 would have rejected this on
-      // the pg_ rule; the database rejects it regardless.
-      await expect(llmReader.query('SELECT pg_sleep(10)')).rejects.toThrow(
-        /statement timeout|canceling statement/i,
-      );
+    it('cancels a long-running query once the transaction sets a timeout', async () => {
+      // Deliberately not asserted via `SHOW statement_timeout` on the
+      // connection. That passes against a local container and fails against a
+      // hosted Postgres, which ignores the client-side startup parameter — so
+      // it would have certified a cap that does not exist in production.
+      //
+      // This mirrors what FinancialService does, and holds on both.
+      await expect(
+        llmReader.transaction(async (manager) => {
+          await manager.query('SET LOCAL statement_timeout = 5000');
+          return manager.query('SELECT pg_sleep(8)');
+        }),
+      ).rejects.toThrow(/statement timeout|canceling statement/i);
     });
   });
 
@@ -127,6 +127,22 @@ describe('SQL guardrails (e2e)', () => {
         SELECT count(*) AS n FROM tech
       `);
       expect(cte.rowCount).toBe(1);
+    });
+
+    it('applies the statement timeout on the path model SQL actually takes', async () => {
+      // Asserting SHOW on the connection is not enough: a hosted Postgres can
+      // ignore the client-side option and a pooler can discard a role-level
+      // default, in both cases leaving queries uncapped while the connection
+      // still looked correctly configured. This reads the value from inside
+      // the transaction the query really runs in.
+      const result = await financial.execute(
+        'SELECT current_setting(?statement_timeout?) AS timeout FROM financial_data LIMIT 1'.replace(
+          /\?/g,
+          "'",
+        ),
+      );
+
+      expect(result.rows[0].timeout).toBe('5s');
     });
 
     it('refuses a write before it reaches the database', async () => {

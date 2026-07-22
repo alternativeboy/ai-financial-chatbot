@@ -30,6 +30,12 @@ GRANT CONNECT ON DATABASE :"DBNAME" TO llm_reader;
 GRANT USAGE   ON SCHEMA public      TO llm_reader;
 GRANT SELECT  ON financial_data     TO llm_reader;
 
+-- Also pin the timeout to the role. This covers direct (non-pooled) connections;
+-- it is deliberately not the only mechanism, because a PgBouncer-style pooler
+-- discards role-level settings. FinancialService sets it per transaction, which
+-- nothing can reset.
+ALTER ROLE llm_reader SET statement_timeout = '5s';
+
 REVOKE CREATE ON SCHEMA public FROM llm_reader;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM llm_reader;
 
