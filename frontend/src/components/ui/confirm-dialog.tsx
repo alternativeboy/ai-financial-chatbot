@@ -34,24 +34,20 @@ export function ConfirmDialog({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex animate-in fade-in items-center justify-center bg-foreground/40 p-4 duration-200"
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl dark:bg-slate-800"
+        className="w-full max-w-sm animate-in zoom-in-95 rounded-2xl border bg-popover p-5 text-popover-foreground shadow-frame duration-200"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-          {title}
-        </h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          {description}
-        </p>
+        <h2 className="text-base font-bold tracking-tight">{title}</h2>
+        <p className="mt-2 text-[13px] text-muted-foreground">{description}</p>
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onConfirm} autoFocus>
+          <Button variant="destructive" onClick={onConfirm} autoFocus>
             {confirmLabel}
           </Button>
         </div>

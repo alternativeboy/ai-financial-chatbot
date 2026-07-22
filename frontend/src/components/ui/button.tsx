@@ -1,32 +1,30 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import type { ButtonHTMLAttributes } from 'react';
+import { cn } from '../../lib/utils';
 
-type Variant = 'primary' | 'ghost' | 'danger';
+const button = cva(
+  'inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold h-10 transition disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: 'bg-emerald text-primary-foreground shadow-green hover:brightness-105',
+        outline: 'border border-input bg-background hover:bg-muted',
+        ghost: 'hover:bg-muted',
+        destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+      },
+      size: {
+        default: 'px-4',
+        icon: 'h-9 w-9 rounded-lg px-0',
+      },
+    },
+    defaultVariants: { variant: 'default', size: 'default' },
+  },
+);
 
-const VARIANTS: Record<Variant, string> = {
-  primary:
-    'bg-slate-900 text-white hover:bg-slate-700 disabled:bg-slate-300 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white',
-  ghost:
-    'text-slate-600 hover:bg-slate-200/70 dark:text-slate-300 dark:hover:bg-slate-700/60',
-  danger: 'bg-red-600 text-white hover:bg-red-700',
-};
+export interface ButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof button> {}
 
-interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  children: ReactNode;
-}
-
-export function Button({
-  variant = 'primary',
-  className = '',
-  children,
-  ...rest
-}: Props) {
-  return (
-    <button
-      {...rest}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed ${VARIANTS[variant]} ${className}`}
-    >
-      {children}
-    </button>
-  );
+export function Button({ className, variant, size, ...rest }: ButtonProps) {
+  return <button {...rest} className={cn(button({ variant, size }), className)} />;
 }
