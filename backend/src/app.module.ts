@@ -5,6 +5,7 @@ import { ChatModule } from './chat/chat.module';
 import { ConfigModule } from './config/config.module';
 import { FinancialModule } from './financial/financial.module';
 import { HealthModule } from './health/health.module';
+import { LlmModule } from './llm/llm.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { HealthModule } from './health/health.module';
     HealthModule,
     ChatModule,
     FinancialModule,
+    LlmModule,
   ],
 })
 export class AppModule {}
