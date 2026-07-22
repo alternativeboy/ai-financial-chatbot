@@ -1,8 +1,9 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
+# package-lock.json is tracked: the Render build runs `npm ci`, which fails without it,
+# and a fresh clone must reproduce the exact dependency tree the README was verified against.
 
 # Build output
 dist/
