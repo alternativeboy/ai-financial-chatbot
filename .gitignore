@@ -49,3 +49,6 @@ temp/
 handoff.md
 # Vite build output
 frontend/dist/
+
+# Vite dependency pre-bundling cache (regenerated on every dev server start)
+.vite/
