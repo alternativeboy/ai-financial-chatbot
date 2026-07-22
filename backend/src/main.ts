@@ -1,4 +1,4 @@
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
@@ -25,7 +25,16 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  await app.listen(config.getOrThrow<number>('app.port'));
+  // Bind on every interface, not just loopback. A platform like Render reaches
+  // the container from outside, so a loopback-only bind looks identical to a
+  // dead process: the port never answers and the health check just times out.
+  const port = config.getOrThrow<number>('app.port');
+  await app.listen(port, '0.0.0.0');
+
+  // Printed last, after every module has initialised. If this line is missing
+  // from the logs, the process never got as far as listening — look at what ran
+  // before it rather than at the network.
+  new Logger('Bootstrap').log(`Listening on 0.0.0.0:${port}`);
 }
 
 void bootstrap();
