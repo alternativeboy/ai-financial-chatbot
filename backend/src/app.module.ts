@@ -20,6 +20,12 @@ import { LlmModule } from './llm/llm.module';
         password: config.getOrThrow<string>('database.password'),
         database: config.getOrThrow<string>('database.database'),
         poolSize: config.getOrThrow<number>('database.poolSize'),
+        // Certificates are verified — the hosted providers this deploys to all
+        // present valid ones, and silently accepting any certificate would
+        // undo the point of using TLS.
+        ssl: config.getOrThrow<boolean>('database.ssl')
+          ? { rejectUnauthorized: true }
+          : false,
         autoLoadEntities: true,
         // Locked decision: schema changes go through migrations, never sync.
         // financial_data holds the only copy of the dataset, and synchronize

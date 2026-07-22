@@ -29,6 +29,9 @@ import { FinancialService } from './financial.service';
         username: config.getOrThrow<string>('database.llmReaderUser'),
         password: config.getOrThrow<string>('database.llmReaderPassword'),
         database: config.getOrThrow<string>('database.database'),
+        ssl: config.getOrThrow<boolean>('database.ssl')
+          ? { rejectUnauthorized: true }
+          : false,
         entities: [FinancialData],
         synchronize: false,
         // Never run migrations on this connection — it has no rights to, and
