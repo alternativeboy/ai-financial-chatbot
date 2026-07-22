@@ -32,6 +32,10 @@ export default {
         // The dark zone gets real tokens rather than inline oklch() literals
         // scattered through class strings.
         sidebar: {
+          // --sidebar-from/to back the bg-sidebar-dark gradient; mapping them
+          // as colours too lets a flat panel sit on the same scale.
+          from: c('--sidebar-from'),
+          to: c('--sidebar-to'),
           foreground: c('--sidebar-foreground'),
           muted: c('--sidebar-muted'),
           label: c('--sidebar-label'),

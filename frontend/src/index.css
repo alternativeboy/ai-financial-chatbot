@@ -86,3 +86,28 @@
     }
   }
 }
+
+@layer components {
+  /*
+   * Landing-page decoration. These two live in CSS rather than as utilities
+   * because Tailwind has no mask-image utility and no blur-filter utility at
+   * this radius — and keeping the oklch() here is what lets every .tsx stay
+   * free of raw colour values.
+   */
+  .grid-overlay {
+    background-image:
+      linear-gradient(oklch(0.72 0.19 155 / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.72 0.19 155 / 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  /* A soft radial gradient does most of the work already; the remaining blur
+     is small enough that animating scale() on top of it stays cheap. An 80px
+     radius here re-rasterises the layer every frame and pins the compositor. */
+  .orb-blur {
+    filter: blur(24px);
+    will-change: transform;
+  }
+}

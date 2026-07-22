@@ -50,7 +50,7 @@ export function ChatPage() {
     void openConversation(conversationId ?? null).then((found) => {
       // The URL points at something that is gone; don't strand the user on a
       // blank page that still shows a dead id.
-      if (!found) navigate('/', { replace: true });
+      if (!found) navigate('/chat', { replace: true });
     });
   }, [conversationId, navigate, openConversation]);
 
@@ -91,7 +91,7 @@ export function ChatPage() {
     const wasActive = pendingDelete.id === activeId;
     await removeConversation(pendingDelete.id);
     setPendingDelete(null);
-    if (wasActive) navigate('/', { replace: true });
+    if (wasActive) navigate('/chat', { replace: true });
   }, [activeId, navigate, pendingDelete, removeConversation]);
 
   const showEmptyState =
@@ -115,7 +115,7 @@ export function ChatPage() {
           }}
           onDelete={setPendingDelete}
           onNew={() => {
-            navigate('/');
+            navigate('/chat');
             setSidebarOpen(false);
           }}
         />

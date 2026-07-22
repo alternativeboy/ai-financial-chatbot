@@ -15,6 +15,8 @@ const button = cva(
       size: {
         default: 'px-4',
         icon: 'h-9 w-9 rounded-lg px-0',
+        /** Page-level primary action, e.g. the landing call to action. */
+        xl: 'h-14 px-9 text-[16px]',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },
