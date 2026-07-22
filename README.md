@@ -174,7 +174,19 @@ DATABASE_NAME=… DATABASE_PORT=5432 npm run migration:run
 ### 2. Backend — Render
 
 `render.yaml` is a Blueprint: point Render at the repo and it picks up the build
-and start commands and the health check path. Set the secrets in the dashboard
+and start commands and the health check path. If you create the service by hand
+instead, the settings are:
+
+| Field | Value |
+|---|---|
+| Root Directory | `backend` |
+| Build Command | `npm ci --include=dev && npm run build` |
+| Start Command | `node dist/main` |
+| Health Check Path | `/api/health` |
+
+`--include=dev` is required. `NODE_ENV=production` makes npm omit
+devDependencies, and the build needs `@nestjs/cli` and `typescript` from there —
+without it the build fails with `nest: not found`. Set the secrets in the dashboard
 (they are marked `sync: false` so they are never written into the repo):
 `DATABASE_*`, `LLM_READER_*`, `ANTHROPIC_API_KEY`, and `CORS_ORIGIN`.
 

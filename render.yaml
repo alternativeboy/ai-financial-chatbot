@@ -7,7 +7,11 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    # --include=dev is load-bearing: NODE_ENV is production below, and npm
+    # omits devDependencies under that setting. The build needs @nestjs/cli
+    # (the `nest` binary) and typescript, both of which are devDependencies —
+    # without this the build fails with "nest: not found".
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: node dist/main
     healthCheckPath: /api/health
     envVars:
