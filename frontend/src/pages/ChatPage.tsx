@@ -10,6 +10,7 @@ import { ConversationList } from '../components/sidebar/ConversationList';
 import { Button } from '../components/ui/button';
 import { ConfirmDialog } from '../components/ui/confirm-dialog';
 import { useStreamChat } from '../hooks/useStreamChat';
+import { useSmoothedText } from '../hooks/useSmoothedText';
 import { cn } from '../lib/utils';
 import { useChatStore } from '../stores/chat.store';
 import type { Conversation } from '../types/chat.types';
@@ -36,9 +37,22 @@ export function ChatPage() {
 
   const stream = useStreamChat();
   const [pendingUserMessage, setPendingUserMessage] = useState<string | null>(null);
+  // Covers the gap between the click and the first streamed byte: creating a
+  // conversation is a round trip of its own, and without this the UI sits
+  // unchanged through it.
+  const [preparing, setPreparing] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<Conversation | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // A ref rather than the `busy` state: the guard has to be correct within a
+  // single tick, before React has re-rendered.
+  const busyRef = useRef(false);
+
+  const busy = preparing || stream.isStreaming;
+
+  // The model API delivers a reply in a few large bursts; this pays it out at a
+  // steady rate so it reads as typing rather than as freeze-then-dump.
+  const streamedMarkdown = useSmoothedText(stream.text, stream.isStreaming);
 
   useEffect(() => {
     void loadConversations();
@@ -69,32 +83,52 @@ export function ChatPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, stream.text, stream.toolCalls, pendingUserMessage]);
+  }, [messages, streamedMarkdown, stream.toolCalls, pendingUserMessage]);
 
   const handleSend = useCallback(
     async (content: string) => {
-      let targetId = activeId;
-      if (!targetId) {
-        const created = await startConversation();
-        targetId = created.id;
-        navigate(`/c/${created.id}`, { replace: true });
-      }
+      // A second submission mid-turn would start an overlapping stream.
+      if (busyRef.current) return;
+      busyRef.current = true;
 
-      // Both the user turn and the assistant reply are expected to exist
-      // server-side once this settles.
-      const expectedCount = useChatStore.getState().messages.length + 2;
-
+      // Paint the question and the indicator before touching the network, so a
+      // tapped suggestion responds on the same frame rather than after a
+      // conversation has been created.
       setPendingUserMessage(content);
-      await stream.send(targetId, content);
-      setPendingUserMessage(null);
-      stream.reset();
+      setPreparing(true);
 
-      // Re-read from the server rather than trusting what was accumulated
-      // locally: this is what gives the message its real id, cost and partial
-      // flag, and it is why a refresh mid-stream shows no duplicates.
-      await refreshMessages(expectedCount);
-      // The title and ordering changed server-side on the first message.
-      await loadConversations();
+      try {
+        let targetId = activeId;
+        if (!targetId) {
+          const created = await startConversation();
+          targetId = created.id;
+          navigate(`/c/${created.id}`, { replace: true });
+        }
+
+        // Both the user turn and the assistant reply are expected to exist
+        // server-side once this settles.
+        const expectedCount = useChatStore.getState().messages.length + 2;
+
+        await stream.send(targetId, content);
+
+        // Fetch before clearing, not after. Clearing first empties the
+        // optimistic bubble and the streamed text while `messages` is still the
+        // old list — on a new chat that is an empty list, so the whole empty
+        // state flashes back for the length of the round trip. Holding the
+        // local copy until the server copy is in hand makes the swap invisible.
+        //
+        // Re-reading at all is what gives the message its real id, cost and
+        // partial flag, and is why a refresh mid-stream shows no duplicates.
+        await refreshMessages(expectedCount);
+        setPendingUserMessage(null);
+        stream.reset();
+
+        // The title and ordering changed server-side on the first message.
+        await loadConversations();
+      } finally {
+        setPreparing(false);
+        busyRef.current = false;
+      }
     },
     [activeId, loadConversations, navigate, refreshMessages, startConversation, stream],
   );
@@ -107,8 +141,7 @@ export function ChatPage() {
     if (wasActive) navigate('/chat', { replace: true });
   }, [activeId, navigate, pendingDelete, removeConversation]);
 
-  const showEmptyState =
-    messages.length === 0 && !pendingUserMessage && !stream.isStreaming;
+  const showEmptyState = messages.length === 0 && !pendingUserMessage && !busy;
 
   return (
     <div className="flex h-dvh overflow-hidden">
@@ -183,8 +216,9 @@ export function ChatPage() {
                       <button
                         key={prompt}
                         type="button"
+                        disabled={busy}
                         onClick={() => void handleSend(prompt)}
-                        className="rounded-[11px] border bg-card px-3.5 py-2 text-[13px] text-muted-foreground shadow-card transition hover:border-ring hover:text-foreground"
+                        className="rounded-[11px] border bg-card px-3.5 py-2 text-[13px] text-muted-foreground shadow-card transition hover:border-ring hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                       >
                         {prompt}
                       </button>
@@ -206,20 +240,21 @@ export function ChatPage() {
               </div>
             )}
 
-            {(stream.isStreaming || stream.text || stream.toolCalls.length > 0) && (
+            {(busy || stream.text || stream.toolCalls.length > 0) && (
               <div className="flex max-w-[640px] flex-col">
                 {stream.toolCalls.map((call, index) => (
                   <ToolCallWidget key={index} call={call} />
                 ))}
-                {stream.text ? (
+                {streamedMarkdown ? (
                   <div className="relative">
-                    <MarkdownRenderer content={stream.text} />
+                    <MarkdownRenderer content={streamedMarkdown} />
                     {stream.isStreaming && (
                       <span className="ml-0.5 inline-block h-[1.05em] w-[2px] animate-caret bg-primary align-text-bottom" />
                     )}
                   </div>
                 ) : (
-                  stream.isStreaming && (
+                  busy &&
+                  !stream.text && (
                     <StreamingIndicator
                       label={stream.toolCalls.length > 0 ? 'Reading results' : 'Thinking'}
                     />
@@ -239,7 +274,7 @@ export function ChatPage() {
         </div>
 
         <ChatInput
-          disabled={stream.isStreaming}
+          disabled={busy}
           isStreaming={stream.isStreaming}
           onSend={(content) => void handleSend(content)}
           onStop={stream.stop}
