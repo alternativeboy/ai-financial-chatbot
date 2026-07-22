@@ -155,7 +155,11 @@ describe('LlmService', () => {
         service.streamChat([], 'q', new AbortController().signal),
       );
 
-      expect(result.content).toBe('Let me check.Apple earned $96.99 billion.');
+      // A blank line separates the pre-tool remark from the answer; without it
+      // the two rounds run together as "…look that up.Apple earned…".
+      expect(result.content).toBe(
+        'Let me check.\n\nApple earned $96.99 billion.',
+      );
       expect(result.inputTokens).toBe(2200);
       expect(result.outputTokens).toBe(50);
       expect(result.cost).toBeCloseTo(2200 * 5e-6 + 50 * 25e-6, 12);
