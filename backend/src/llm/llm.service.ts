@@ -47,11 +47,16 @@ export class LlmService {
    * user pressed stop, and whatever was produced still has to be saved and
    * billed.
    *
-   * Note on parameters: no `temperature`, `top_p`, `top_k` or `thinking`.
-   * Opus 4.8 rejects the sampling parameters outright, and omitting `thinking`
-   * is what keeps this model from reasoning before every reply — writing a
-   * SELECT over eight columns does not need it, and latency is the thing users
-   * feel here.
+   * Note on parameters: no `temperature`, `top_p` or `top_k` — Sonnet 5
+   * rejects the sampling parameters outright, so behaviour is steered from the
+   * system prompt instead.
+   *
+   * `thinking` is disabled explicitly rather than omitted. On Sonnet 5 an
+   * omitted `thinking` runs *adaptive* thinking, which is the opposite of what
+   * this endpoint wants: writing a SELECT over eight columns does not need
+   * reasoning, and latency is the thing users feel here. Disabling it also
+   * makes the model less eager to reach for tools, which is why the system
+   * prompt says to ALWAYS call `execute_sql` before answering.
    */
   async *streamChat(
     history: HistoryTurn[],
@@ -104,6 +109,7 @@ export class LlmService {
           {
             model: this.model,
             max_tokens: MAX_TOKENS,
+            thinking: { type: 'disabled' },
             system, // top-level parameter, not a message
             // Copied per round: the loop appends to `messages` after this call,
             // and the request payload must not alias state from a later round.

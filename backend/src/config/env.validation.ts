@@ -32,7 +32,7 @@ export const envValidationSchema = Joi.object({
   LLM_READER_PASSWORD: Joi.string().required(),
 
   ANTHROPIC_API_KEY: Joi.string().required(),
-  ANTHROPIC_MODEL: Joi.string().default('claude-opus-4-8'),
+  ANTHROPIC_MODEL: Joi.string().default('claude-sonnet-5'),
 
   // Comma-separated allowlist. '*' is rejected outright rather than merely
   // discouraged — see app.config.ts.

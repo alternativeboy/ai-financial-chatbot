@@ -1,16 +1,16 @@
 import { calculateCost } from './cost';
 
 describe('calculateCost', () => {
-  it('prices input at $5.00 per million tokens', () => {
-    expect(calculateCost(1_000_000, 0)).toBeCloseTo(5, 9);
+  it('prices input at $3.00 per million tokens', () => {
+    expect(calculateCost(1_000_000, 0)).toBeCloseTo(3, 9);
   });
 
-  it('prices output at $25.00 per million tokens', () => {
-    expect(calculateCost(0, 1_000_000)).toBeCloseTo(25, 9);
+  it('prices output at $15.00 per million tokens', () => {
+    expect(calculateCost(0, 1_000_000)).toBeCloseTo(15, 9);
   });
 
   it('sums both sides of the turn', () => {
-    expect(calculateCost(1_000_000, 1_000_000)).toBeCloseTo(30, 9);
+    expect(calculateCost(1_000_000, 1_000_000)).toBeCloseTo(18, 9);
   });
 
   it('is zero only when nothing was consumed', () => {

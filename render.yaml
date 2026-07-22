@@ -38,6 +38,6 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: ANTHROPIC_MODEL
-        value: claude-opus-4-8
+        value: claude-sonnet-5
       - key: CORS_ORIGIN
         sync: false

@@ -90,7 +90,7 @@ describe('LlmService', () => {
       { messages: { stream } } as unknown as Anthropic,
       { getSystemPrompt: () => 'SYSTEM PROMPT' } as PromptBuilderService,
       { execute } as unknown as FinancialService,
-      { getOrThrow: () => 'claude-opus-4-8' } as unknown as ConfigService,
+      { getOrThrow: () => 'claude-sonnet-5' } as unknown as ConfigService,
     );
   });
 
@@ -162,7 +162,7 @@ describe('LlmService', () => {
       );
       expect(result.inputTokens).toBe(2200);
       expect(result.outputTokens).toBe(50);
-      expect(result.cost).toBeCloseTo(2200 * 5e-6 + 50 * 25e-6, 12);
+      expect(result.cost).toBeCloseTo(2200 * 3e-6 + 50 * 15e-6, 12);
       expect(result.partial).toBe(false);
       expect(result.toolCalls).toEqual([
         { name: 'execute_sql', arguments: APPLE_SQL },
@@ -196,11 +196,13 @@ describe('LlmService', () => {
       const request = stream.mock.calls[0][0];
       expect(request.system).toBe('SYSTEM PROMPT');
       expect(request.messages[0]).toEqual({ role: 'user', content: 'q' });
-      // Opus 4.8 returns 400 for any of these.
+      // Sonnet 5 returns 400 for any of these.
       expect(request).not.toHaveProperty('temperature');
       expect(request).not.toHaveProperty('top_p');
       expect(request).not.toHaveProperty('top_k');
-      expect(request).not.toHaveProperty('thinking');
+      // Must be disabled explicitly: on Sonnet 5 an omitted `thinking` runs
+      // adaptive thinking, which would add reasoning latency to every reply.
+      expect(request.thinking).toEqual({ type: 'disabled' });
       expect(request.max_tokens).toBeGreaterThan(0);
     });
 
