@@ -1,0 +1,43 @@
+# Render Blueprint for the backend. The database is NOT defined here on
+# purpose: Render's free Postgres expires after 90 days, so §13 uses Neon and
+# this service connects to it over TLS.
+services:
+  - type: web
+    name: financial-chat-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects PORT; main.ts reads it.
+      - key: DATABASE_SSL
+        value: true
+      # Everything below is secret or environment-specific — set each one in the
+      # Render dashboard. sync:false stops Render from prompting for a value it
+      # would then store in the blueprint.
+      - key: DATABASE_HOST
+        sync: false
+      - key: DATABASE_PORT
+        sync: false
+      - key: DATABASE_USER
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: DATABASE_NAME
+        sync: false
+      - key: DATABASE_POOL_SIZE
+        value: 10
+      - key: LLM_READER_USER
+        sync: false
+      - key: LLM_READER_PASSWORD
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-4-8
+      - key: CORS_ORIGIN
+        sync: false

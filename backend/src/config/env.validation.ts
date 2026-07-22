@@ -21,6 +21,9 @@ export const envValidationSchema = Joi.object({
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),
   DATABASE_POOL_SIZE: Joi.number().integer().min(1).default(10),
+  // Managed Postgres (Neon, Supabase, Render) requires TLS; a local container
+  // does not offer it. False by default so `docker compose up` works untouched.
+  DATABASE_SSL: Joi.boolean().default(false),
 
   // Credentials for the SELECT-only role that runs LLM-authored SQL. Required
   // here even though nothing reads them until the financial module exists, so a

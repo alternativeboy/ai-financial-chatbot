@@ -1,0 +1,3 @@
+# Netlify / Cloudflare Pages equivalent of the Vercel rewrite: every path is
+# served by the SPA so a reload on /c/<id> reaches React Router instead of a 404.
+/*  /index.html  200
