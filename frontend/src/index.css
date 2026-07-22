@@ -2,21 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body,
-#root {
-  height: 100%;
-}
+/*
+ * v3 theme — light blue-gray neutrals (hue 220) for the chat zone, a dark
+ * navy-teal sidebar, emerald primary, and an emerald→turquoise gradient.
+ *
+ * Tokens are bare oklch "L C H" triplets, consumed via
+ * oklch(var(--x) / <alpha-value>). Do not wrap them in oklch() here: Tailwind
+ * needs to inject the alpha channel, and every /opacity utility breaks silently
+ * if it cannot.
+ *
+ * OKLCH rather than HSL because equal L reads as equal brightness across hues,
+ * which is what makes the chart palette checks in the design handoff meaningful.
+ */
+@layer base {
+  :root {
+    --background: 1 0 0;
+    --foreground: 0.18 0.02 220;
+    --card: 1 0 0;
+    --card-foreground: 0.25 0.02 220;
+    --popover: 1 0 0;
+    --popover-foreground: 0.25 0.02 220;
+    --primary: 0.72 0.19 155;
+    --primary-foreground: 1 0 0;
+    --secondary: 0.92 0.05 155;
+    --secondary-foreground: 0.4 0.08 155;
+    --muted: 0.96 0.006 220;
+    --muted-foreground: 0.55 0.015 220;
+    --accent: 0.92 0.05 155;
+    --accent-foreground: 0.4 0.08 155;
+    /* Terracotta, not red — this theme has no red. */
+    --destructive: 0.58 0.17 28;
+    --destructive-foreground: 1 0 0;
+    --border: 0.92 0.006 90;
+    --input: 0.91 0.006 90;
+    --ring: 0.72 0.19 155;
+    --radius: 0.75rem;
 
-body {
-  margin: 0;
-  font-family:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+    /* Dark zone. These exist so sidebar colours are tokens rather than
+       oklch() literals buried in class strings. */
+    --sidebar-from: 0.18 0.03 220;
+    --sidebar-to: 0.14 0.025 240;
+    --sidebar-foreground: 0.68 0.02 220;
+    --sidebar-muted: 0.6 0.02 220;
+    --sidebar-label: 0.55 0.02 145;
+    --sidebar-active: 0.28 0.04 175;
+    --sidebar-active-foreground: 0.92 0.03 155;
+    --sidebar-marker: 0.75 0.19 155;
 
-@media (prefers-color-scheme: dark) {
+    /* Chart colours are full colours rather than "L C H" triplets: they are
+       consumed directly by SVG (stop-color, fill), never by a Tailwind opacity
+       utility, so the alpha-injection trick does not apply. Keeping them here
+       is what lets every .tsx stay free of raw oklch() literals. */
+    --chart-bar-from: oklch(0.74 0.18 155);
+    --chart-bar-to: oklch(0.55 0.17 170);
+    --chart-axis: oklch(0.92 0.006 90);
+    --chart-ink: oklch(0.5 0.015 145);
+    --chart-cursor: oklch(0.95 0.01 145);
+  }
+
+  * {
+    @apply border-border;
+  }
+
   body {
-    background-color: rgb(15 23 42);
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  ::selection {
+    background: oklch(0.75 0.15 155 / 0.35);
+  }
+
+  /* Several animations in this theme loop forever (orb drift, glow pulse,
+     shimmer). Without this block, anyone who has asked their OS to reduce
+     motion gets all of them, permanently. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

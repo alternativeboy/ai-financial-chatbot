@@ -1,131 +1,82 @@
-import { useMemo, useState } from 'react';
+import { ChevronDown, Database } from 'lucide-react';
+import { useState } from 'react';
+import { cn } from '../../lib/utils';
 import type { LiveToolCall } from '../../types/chat.types';
 import { CopyButton } from '../ui/copy-button';
-import { findChartShape, ResultChart } from './ResultChart';
-
-const PREVIEW_ROWS = 10;
 
 /**
- * Shows the SQL the model ran and what came back.
+ * The SQL the model ran, shown next to its answer.
  *
- * This is the app's honesty mechanism: the query is displayed verbatim next to
- * the answer, so a claimed figure can always be traced to the statement that
- * produced it.
+ * This is the app's honesty mechanism, so it opens expanded while the query is
+ * running: the requirement is that the SQL is *visible*, not that it can be
+ * found by clicking around. Once rows come back it can be folded away.
  */
 export function ToolCallWidget({ call }: { call: LiveToolCall }) {
-  const [showChart, setShowChart] = useState(true);
-  const [expanded, setExpanded] = useState(false);
-
-  const rows = call.rows ?? [];
-  const chartShape = useMemo(() => findChartShape(rows), [rows]);
-  const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-  const visible = expanded ? rows : rows.slice(0, PREVIEW_ROWS);
+  const running = call.rows === undefined && call.rowCount === undefined && !call.error;
+  const [open, setOpen] = useState(true);
+  const expanded = running || open;
 
   return (
-    <div className="my-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/60">
-      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-1.5 dark:border-slate-700">
-        <span className="font-mono text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          {call.name}
+    <div className="my-3 max-w-[640px] animate-in fade-in overflow-hidden rounded-[18px] border shadow-card">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        disabled={running}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3.5 transition hover:bg-muted disabled:hover:bg-transparent"
+      >
+        <span className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] bg-emerald">
+            <Database className="h-3 w-3 text-white" />
+          </span>
+          <span className="font-mono text-[13px] font-semibold text-foreground">
+            {call.name}
+          </span>
+          {running && <span className="text-xs text-muted-foreground">running…</span>}
         </span>
-        <CopyButton value={call.arguments} label="Copy SQL" />
-      </div>
 
-      <pre className="overflow-x-auto px-3 py-2 font-mono text-[11px] leading-relaxed text-slate-700 dark:text-slate-200">
-        {call.arguments}
-      </pre>
-
-      {call.error ? (
-        <p className="px-3 pb-2 text-xs text-red-600 dark:text-red-400">
-          Query rejected: {call.error}
-        </p>
-      ) : call.rows === undefined && call.rowCount === undefined ? (
-        <p className="px-3 pb-2 text-xs text-slate-500 dark:text-slate-400">
-          Running…
-        </p>
-      ) : call.rows === undefined ? (
-        // Reloaded from history: the row count was stored, the rows were not.
-        <p className="px-3 pb-2 text-xs text-slate-500 dark:text-slate-400">
-          {call.rowCount} row{call.rowCount === 1 ? '' : 's'} returned
-        </p>
-      ) : rows.length === 0 ? (
-        <p className="px-3 pb-2 text-xs text-slate-500 dark:text-slate-400">
-          No rows returned.
-        </p>
-      ) : (
-        <div className="border-t border-slate-200 dark:border-slate-700">
-          <div className="flex flex-wrap items-center gap-3 px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400">
-            <span>
-              {call.rowCount} row{call.rowCount === 1 ? '' : 's'}
+        <span className="flex shrink-0 items-center gap-2">
+          {call.error ? (
+            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[12px] font-semibold text-destructive">
+              rejected
             </span>
-            {call.truncated && (
-              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-                truncated
-              </span>
-            )}
-            {chartShape && (
-              <button
-                type="button"
-                onClick={() => setShowChart((value) => !value)}
-                className="underline-offset-2 hover:underline"
-              >
-                {showChart ? 'Show table' : 'Show chart'}
-              </button>
-            )}
-          </div>
-
-          {chartShape && showChart ? (
-            <div className="px-2 pb-3">
-              <ResultChart rows={rows} shape={chartShape} />
-            </div>
           ) : (
-            <div className="max-h-72 overflow-auto">
-              <table className="min-w-full text-left text-xs">
-                <thead className="sticky top-0 bg-slate-100 dark:bg-slate-700">
-                  <tr>
-                    {columns.map((column) => (
-                      <th
-                        key={column}
-                        className="whitespace-nowrap px-3 py-1.5 font-semibold"
-                      >
-                        {column}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((row, index) => (
-                    <tr
-                      key={index}
-                      className="border-t border-slate-200 dark:border-slate-700"
-                    >
-                      {columns.map((column) => (
-                        <td
-                          key={column}
-                          className="whitespace-nowrap px-3 py-1.5 font-mono"
-                        >
-                          {row[column] === null ? (
-                            <span className="text-slate-400">NULL</span>
-                          ) : (
-                            String(row[column])
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {rows.length > PREVIEW_ROWS && (
-                <button
-                  type="button"
-                  onClick={() => setExpanded((value) => !value)}
-                  className="w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
-                >
-                  {expanded
-                    ? 'Show fewer rows'
-                    : `Show all ${rows.length} rows`}
-                </button>
+            call.rowCount !== undefined && (
+              <span className="rounded-full bg-secondary px-2 py-0.5 text-[12px] font-semibold text-secondary-foreground">
+                {call.rowCount} row{call.rowCount === 1 ? '' : 's'}
+              </span>
+            )
+          )}
+          {call.truncated && (
+            <span className="rounded-full bg-accent px-2 py-0.5 text-[12px] font-semibold text-accent-foreground">
+              truncated
+            </span>
+          )}
+          {!running && (
+            <ChevronDown
+              className={cn(
+                'h-4 w-4 text-muted-foreground transition-transform',
+                expanded && 'rotate-180',
               )}
-            </div>
+            />
+          )}
+        </span>
+      </button>
+
+      {expanded && (
+        <div className="animate-in fade-in slide-in-from-top-1 border-t bg-sql-dark duration-200">
+          <div className="flex items-center justify-between px-4 pt-2.5">
+            <span className="font-mono text-[10.5px] font-bold uppercase tracking-[0.1em] text-sidebar-label">
+              query
+            </span>
+            <CopyButton value={call.arguments} label="Copy SQL" onDark />
+          </div>
+          <pre className="overflow-x-auto px-4 pb-3.5 pt-1.5 font-mono text-[12.5px] leading-relaxed text-sidebar-active-foreground">
+            {call.arguments}
+          </pre>
+          {call.error && (
+            <p className="border-t border-white/10 px-4 py-2 font-mono text-[12px] text-sidebar-muted">
+              {call.error}
+            </p>
           )}
         </div>
       )}

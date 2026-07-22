@@ -1,3 +1,5 @@
+import { Trash2 } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import type { Conversation } from '../../types/chat.types';
 
 interface Props {
@@ -7,35 +9,39 @@ interface Props {
   onDelete: () => void;
 }
 
-export function ConversationItem({
-  conversation,
-  active,
-  onSelect,
-  onDelete,
-}: Props) {
+/**
+ * Dark zone. --foreground / --muted-foreground belong to the light chat surface
+ * and are unreadable here, so everything uses the sidebar-* tokens and hover is
+ * a white wash rather than bg-muted.
+ */
+export function ConversationItem({ conversation, active, onSelect, onDelete }: Props) {
   return (
     <div
-      className={`group flex items-center gap-1 rounded-lg px-2 ${
+      className={cn(
+        'group flex cursor-pointer items-center justify-between gap-2 rounded-[11px] px-3 py-2 transition',
         active
-          ? 'bg-slate-200 dark:bg-slate-700'
-          : 'hover:bg-slate-100 dark:hover:bg-slate-800'
-      }`}
+          ? 'bg-sidebar-active/60 font-semibold text-sidebar-active-foreground'
+          : 'font-normal text-sidebar-foreground hover:bg-white/[0.06]',
+      )}
+      onClick={onSelect}
     >
+      <span className="flex min-w-0 items-center gap-2">
+        {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-sidebar-marker" />}
+        <span className="truncate text-[13px]" title={conversation.title}>
+          {conversation.title}
+        </span>
+      </span>
+
       <button
         type="button"
-        onClick={onSelect}
-        className="min-w-0 flex-1 truncate py-2 text-left text-sm text-slate-700 dark:text-slate-200"
-        title={conversation.title}
-      >
-        {conversation.title}
-      </button>
-      <button
-        type="button"
-        onClick={onDelete}
         aria-label={`Delete ${conversation.title}`}
-        className="shrink-0 rounded px-1.5 py-1 text-xs text-slate-400 opacity-0 transition-opacity hover:bg-red-100 hover:text-red-600 focus:opacity-100 group-hover:opacity-100 dark:hover:bg-red-900/40"
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete();
+        }}
+        className="shrink-0 rounded-md p-1 text-sidebar-muted opacity-0 transition-opacity hover:text-sidebar-active-foreground focus:opacity-100 group-hover:opacity-100"
       >
-        ✕
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
   );

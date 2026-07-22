@@ -1,6 +1,15 @@
+import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
+import { cn } from '../../lib/utils';
 
-export function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
+interface Props {
+  value: string;
+  label?: string;
+  /** Set on the dark SQL panel, where foreground tokens are unreadable. */
+  onDark?: boolean;
+}
+
+export function CopyButton({ value, label = 'Copy', onDark = false }: Props) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -18,8 +27,14 @@ export function CopyButton({ value, label = 'Copy' }: { value: string; label?: s
     <button
       type="button"
       onClick={copy}
-      className="rounded px-2 py-1 text-xs text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100"
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-mono text-[12px] transition',
+        onDark
+          ? 'text-sidebar-muted hover:bg-white/[0.08] hover:text-sidebar-active-foreground'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+      )}
     >
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       {copied ? 'Copied' : label}
     </button>
   );
