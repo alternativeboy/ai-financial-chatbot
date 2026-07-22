@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ChatModule } from './chat/chat.module';
 import { ConfigModule } from './config/config.module';
 import { HealthModule } from './health/health.module';
 
@@ -25,6 +26,7 @@ import { HealthModule } from './health/health.module';
       }),
     }),
     HealthModule,
+    ChatModule,
   ],
 })
 export class AppModule {}
