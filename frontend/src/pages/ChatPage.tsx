@@ -47,7 +47,20 @@ export function ChatPage() {
   // The URL is the source of truth for which conversation is open, so a refresh
   // or a shared link lands on the same place.
   useEffect(() => {
-    void openConversation(conversationId ?? null).then((found) => {
+    const id = conversationId ?? null;
+
+    // Sending the first message of a new chat creates the conversation, which
+    // moves the URL to /c/<id> and fires this effect mid-stream. The server has
+    // already stored that user message, so refetching here would put it in
+    // `messages` while the optimistic bubble is still on screen — the question
+    // renders twice until the turn finishes and clears the optimistic copy.
+    //
+    // startConversation() has already pointed the store at this id, so there is
+    // nothing to load: reading state directly (rather than adding activeId to
+    // the deps) keeps this from re-running when the store changes.
+    if (id !== null && id === useChatStore.getState().activeId) return;
+
+    void openConversation(id).then((found) => {
       // The URL points at something that is gone; don't strand the user on a
       // blank page that still shows a dead id.
       if (!found) navigate('/chat', { replace: true });
