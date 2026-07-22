@@ -47,3 +47,5 @@ temp/
 .cache/
 
 handoff.md
+# Vite build output
+frontend/dist/

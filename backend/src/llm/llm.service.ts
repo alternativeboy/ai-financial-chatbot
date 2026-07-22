@@ -95,6 +95,10 @@ export class LlmService {
       for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
         roundInput = 0;
         roundOutput = 0;
+        // Text from a previous round ended without punctuation or a newline;
+        // without a break here the model's pre-tool remark runs straight into
+        // its post-tool answer ("I'll look that up.Apple's net income was…").
+        let roundProducedText = false;
 
         const stream = this.anthropic.messages.stream(
           {
@@ -119,8 +123,17 @@ export class LlmService {
             event.type === 'content_block_delta' &&
             event.delta.type === 'text_delta'
           ) {
-            content += event.delta.text;
-            yield { type: 'token', data: { content: event.delta.text } };
+            let chunk = event.delta.text;
+            if (
+              !roundProducedText &&
+              content.length > 0 &&
+              !content.endsWith('\n')
+            ) {
+              chunk = `\n\n${chunk}`;
+            }
+            roundProducedText = true;
+            content += chunk;
+            yield { type: 'token', data: { content: chunk } };
           }
           // input_json_delta is ignored on purpose: finalMessage() hands back
           // the tool input already parsed, so accumulating the fragments here
