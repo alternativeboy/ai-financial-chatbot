@@ -7,6 +7,8 @@ export interface DatabaseConfig {
   password: string;
   database: string;
   poolSize: number;
+  llmReaderUser: string;
+  llmReaderPassword: string;
 }
 
 export default registerAs(
@@ -18,5 +20,9 @@ export default registerAs(
     password: process.env.DATABASE_PASSWORD as string,
     database: process.env.DATABASE_NAME as string,
     poolSize: Number(process.env.DATABASE_POOL_SIZE ?? 10),
+    // Credentials for the second connection. Same host and database as above —
+    // only the role differs, and that difference is the entire guardrail.
+    llmReaderUser: process.env.LLM_READER_USER as string,
+    llmReaderPassword: process.env.LLM_READER_PASSWORD as string,
   }),
 );
